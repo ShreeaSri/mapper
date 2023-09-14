@@ -60,8 +60,6 @@ class Cycling extends Workout {
 const run1 = new Running([39, -12], 5.2, 24, 178);
 const cyc1 = new Cycling([39, -12], 27, 95, 523);
 
-console.log(run1, cyc1);
-
 ///////////////////////////////////////////////////////////////////////////////////////
 //application Architecture
 
@@ -80,8 +78,13 @@ class App {
   #workouts = [];
 
   constructor() {
+    //get user's position
     this._getPosition();
 
+    //get data from local storage
+    this._getLocalStorage();
+
+    //Attach even listeners
     form.addEventListener('submit', this._newWorkout.bind(this));
 
     inputType.addEventListener('change', this._toggleElevationField);
@@ -102,11 +105,9 @@ class App {
   _loadMap(position) {
     const { longitude } = position.coords;
     const { latitude } = position.coords;
-    console.log(`https://www.google.com/maps/@${latitude},${longitude}`);
 
     const coords = [latitude, longitude];
     this.#map = L.map('map').setView(coords, this.#mapZoomLevel);
-    console.log(this.#map);
 
     L.tileLayer('https://tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
       attribution:
@@ -115,6 +116,9 @@ class App {
 
     //handling clicks on map
     this.#map.on('click', this._showForm.bind(this));
+    this.#workouts.forEach(work => {
+      this._renderWorkoutMarker(work);
+    });
   }
 
   _showForm(mapE) {
@@ -194,6 +198,9 @@ class App {
 
     //hide the form and clear the input fields
     this._hideForm();
+
+    //set local storage to all workouts
+    this._setLocalStorage();
   }
 
   _renderWorkoutMarker(workout) {
@@ -265,7 +272,6 @@ class App {
 
   _movementPopup(e) {
     const workoutEl = e.target.closest('.workout');
-    console.log(workoutEl);
     console.log(e === workoutEl);
 
     if (!workoutEl) return; // not clicked on workout elements
@@ -273,7 +279,6 @@ class App {
     const workout = this.#workouts.find(
       work => work.id === workoutEl.dataset.id
     );
-    console.log(workout);
 
     this.#map.setView(workout.coords, this.#mapZoomLevel, {
       animate: true,
@@ -283,7 +288,29 @@ class App {
     });
 
     //using the public interface
-    workout.click();
+    // workout.click();
+  }
+
+  _setLocalStorage() {
+    localStorage.setItem('workouts', JSON.stringify(this.#workouts));
+  }
+
+  _getLocalStorage() {
+    // this method get executed right at the of the beginning
+    const data = JSON.parse(localStorage.getItem('workouts'));
+
+    if (!data) return; // if their is no data then we dont want to do anything
+
+    this.#workouts = data;
+
+    this.#workouts.forEach(work => {
+      this._renderWorkout(work);
+    });
+  }
+
+  reset() {
+    localStorage.removeItem('workouts');
+    location.reload();
   }
 }
 
