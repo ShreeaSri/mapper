@@ -1,13 +1,11 @@
 'use strict';
 
-// prettier-ignore
-const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-
 let map, mapEvent;
 
 class Workout {
   date = new Date();
   id = (Date.now() + '').slice(-10);
+  clicks = 0;
 
   constructor(coords, distance, duration) {
     this.coords = coords; //[lat,lng]
@@ -22,6 +20,10 @@ class Workout {
     this.description = `${this.type[0].toUpperCase()}${this.type.slice(1)} on ${
       months[this.date.getMonth()]
     } ${this.date.getDate()}`;
+  }
+
+  click() {
+    this.clicks++;
   }
 }
 
@@ -60,6 +62,7 @@ const cyc1 = new Cycling([39, -12], 27, 95, 523);
 
 console.log(run1, cyc1);
 
+///////////////////////////////////////////////////////////////////////////////////////
 //application Architecture
 
 const form = document.querySelector('.form');
@@ -72,6 +75,7 @@ const inputElevation = document.querySelector('.form__input--elevation');
 
 class App {
   #map;
+  #mapZoomLevel = 12;
   #mapEvent;
   #workouts = [];
 
@@ -81,6 +85,8 @@ class App {
     form.addEventListener('submit', this._newWorkout.bind(this));
 
     inputType.addEventListener('change', this._toggleElevationField);
+
+    containerWorkouts.addEventListener('click', this._movementPopup.bind(this));
   }
 
   _getPosition() {
@@ -99,7 +105,7 @@ class App {
     console.log(`https://www.google.com/maps/@${latitude},${longitude}`);
 
     const coords = [latitude, longitude];
-    this.#map = L.map('map').setView(coords, 12);
+    this.#map = L.map('map').setView(coords, this.#mapZoomLevel);
     console.log(this.#map);
 
     L.tileLayer('https://tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
@@ -255,6 +261,29 @@ class App {
      </li> `;
 
     form.insertAdjacentHTML('afterend', html);
+  }
+
+  _movementPopup(e) {
+    const workoutEl = e.target.closest('.workout');
+    console.log(workoutEl);
+    console.log(e === workoutEl);
+
+    if (!workoutEl) return; // not clicked on workout elements
+
+    const workout = this.#workouts.find(
+      work => work.id === workoutEl.dataset.id
+    );
+    console.log(workout);
+
+    this.#map.setView(workout.coords, this.#mapZoomLevel, {
+      animate: true,
+      pan: {
+        duration: 1,
+      },
+    });
+
+    //using the public interface
+    workout.click();
   }
 }
 
